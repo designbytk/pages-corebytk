@@ -341,11 +341,11 @@ const MediaView = ({
                                     <div className="text-sm font-medium truncate">{item.name}</div>
                                     <div className="text-xs text-muted-foreground truncate">{getFileSize(item.size)}</div>
                                   </div>
-                                  <FileOptions path={item.path} sha={item.sha} type="media" name={mediaConfig.name} onDelete={handleDelete} onRename={handleRename} portalProps={{container: filesGridRef.current}}>
+                                  {/* <FileOptions path={item.path} sha={item.sha} type="media" name={mediaConfig.name} onDelete={handleDelete} onRename={handleRename} portalProps={{container: filesGridRef.current}}>
                                     <Button variant="ghost" size="icon" className="shrink-0">
                                       <EllipsisVertical className="h-4 w-4" />
                                     </Button>
-                                  </FileOptions>
+                                  </FileOptions> */}
                                 </div>
                                 {onSelect && selected.includes(item.path) &&
                                   <div className="text-primary-foreground bg-primary p-0.5 rounded-full absolute top-2 left-2">
