@@ -282,11 +282,11 @@ const MediaView = ({
             <CornerLeftUp className="w-4 h-4"/>
           </Button>
         </div>
-        <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
+        {/* <FolderCreate path={path} name={mediaConfig.name} type="media" onCreate={handleFolderCreate}>
           <Button type="button" variant="outline" className="ml-auto" size="icon-sm">
             <FolderPlus className="h-3.5 w-3.5"/>
           </Button>
-        </FolderCreate>
+        </FolderCreate> */}
         <MediaUpload media={mediaConfig.name} path={path} onUpload={handleUpload} extensions={filteredExtensions}>
           <MediaUpload.Trigger>
             <Button type="button" size="sm" className="gap-2">
