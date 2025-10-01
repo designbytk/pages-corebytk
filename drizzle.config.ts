@@ -9,15 +9,4 @@ export default defineConfig({
     url: process.env.DATABASE_URL!
   }
 });
-// export default defineConfig({
-//   schema: "./src/db/schema.ts",
-//   out: "./src/db/migrations",
-//   dialect: "sqlite", // Instead of "postgresql"
-//   driver: "turso",   // Or "@libsql/client"
-//   dbCredentials: {
-//     url: process.env.SQLITE_URL!,
-//     authToken: process.env.SQLITE_AUTH_TOKEN, // if required
-//   },
-//   verbose: true,
-//   strict: true,
-// });
+
