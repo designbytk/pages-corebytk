@@ -15,7 +15,7 @@ export default defineConfig({
   dialect: "sqlite", // Instead of "postgresql"
   driver: "turso",   // Or "@libsql/client"
   dbCredentials: {
-    url: process.env.SQLITE_URL,
+    url: process.env.SQLITE_URL!,
     authToken: process.env.SQLITE_AUTH_TOKEN, // if required
   },
   verbose: true,
