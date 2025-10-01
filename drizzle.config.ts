@@ -1,11 +1,23 @@
 import "@/db/envConfig";
 import { defineConfig } from "drizzle-kit";
 
+// export default defineConfig({
+//   dialect: "postgresql",
+//   schema: "./db/schema.ts",
+//   out: "./db/migrations",
+//   dbCredentials: {
+//     url: process.env.DATABASE_URL!
+//   }
+// });
 export default defineConfig({
-  dialect: "postgresql",
-  schema: "./db/schema.ts",
-  out: "./db/migrations",
+  schema: "./src/db/schema.ts",
+  out: "./src/db/migrations",
+  dialect: "sqlite", // Instead of "postgresql"
+  driver: "@libsql/client",   // Or "@libsql/client"
   dbCredentials: {
-    url: process.env.DATABASE_URL!
-  }
+    url: process.env.SQLITE_URL,
+    authToken: process.env.SQLITE_AUTH_TOKEN, // if required
+  },
+  verbose: true,
+  strict: true,
 });
