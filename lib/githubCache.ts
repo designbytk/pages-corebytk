@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { eq, and, inArray, gt, count, min } from "drizzle-orm";
 import { cacheFileTable, cachePermissionTable } from "@/db/schema";
 import { createOctokitInstance } from "@/lib/utils/octokit";
+import { getParentPath } from "@/lib/utils/file";
 import path from "path";
 
 type FileChange = {
@@ -30,10 +31,10 @@ type FileOperation = {
 // Helper to get all non-root ancestor paths (e.g., [a, a/b, a/b/c] for a/b/c/file.txt)
 const getAncestorPaths = (filePath: string): string[] => {
   const ancestors: string[] = [];
-  let currentPath = path.dirname(filePath);
-  while (currentPath !== '.') {
+  let currentPath = getParentPath(filePath);
+  while (currentPath !== '') {
     ancestors.push(currentPath);
-    currentPath = path.dirname(currentPath);
+    currentPath = getParentPath(currentPath);
   }
   return ancestors.reverse();
 };
@@ -55,8 +56,8 @@ const updateParentFolderCachesBatch = async (
   // 1. Collect all unique directory paths potentially affected
   const allRelevantPaths = new Set<string>();
   affectedPaths.forEach(p => {
-    const parent = path.dirname(p);
-    if (parent !== '.') allRelevantPaths.add(parent);
+    const parent = getParentPath(p);
+    if (parent !== '') allRelevantPaths.add(parent);
     getAncestorPaths(p).forEach(ancestor => allRelevantPaths.add(ancestor));
   });
 
@@ -81,18 +82,18 @@ const updateParentFolderCachesBatch = async (
   // 3. Determine additions
   const dirsToInsertData = new Map<string, typeof cacheFileTable.$inferInsert>();
   const parentPathsNeedingContext = new Set<string>();
-  const now = Date.now();
+  const now = new Date();
 
   if (addedPaths.length > 0) {
     for (const filePath of addedPaths) {
       const ancestors = getAncestorPaths(filePath);
-      const directParent = path.dirname(filePath);
-      const pathsToCheckForAdd = directParent === '.' ? ancestors : [directParent, ...ancestors];
+      const directParent = getParentPath(filePath);
+      const pathsToCheckForAdd = directParent === '' ? ancestors : [directParent, ...ancestors];
 
       for (const dirPath of pathsToCheckForAdd) {
         if (!existingDirMap.has(dirPath) && !dirsToInsertData.has(dirPath)) {
-          const parentDir = path.dirname(dirPath);
-          if (parentDir !== '.') {
+          const parentDir = getParentPath(dirPath);
+          if (parentDir !== '') {
             parentPathsNeedingContext.add(parentDir);
           }
           // Add placeholder, context will be filled later if possible
@@ -160,8 +161,8 @@ const updateParentFolderCachesBatch = async (
     const dirPathsToDelete = new Set<string>();
     for (const filePath of deletedPaths) {
       const ancestors = getAncestorPaths(filePath);
-      const directParent = path.dirname(filePath);
-      const pathsToCheckForDelete = directParent === '.' ? ancestors : [directParent, ...ancestors];
+      const directParent = getParentPath(filePath);
+      const pathsToCheckForDelete = directParent === '' ? ancestors : [directParent, ...ancestors];
 
       for (const dirPath of [...pathsToCheckForDelete].reverse()) { // Check bottom-up
         if (existingDirMap.has(dirPath) && !nonEmptyDirs.has(dirPath)) {
@@ -216,12 +217,12 @@ const updateParentFolderCache = async (
   const lowerOwner = owner.toLowerCase();
   const lowerRepo = repo.toLowerCase();
   const ancestors = getAncestorPaths(filePath);
-  const directParent = path.dirname(filePath);
-  const relevantPaths = directParent === '.' ? ancestors : [directParent, ...ancestors];
+  const directParent = getParentPath(filePath);
+  const relevantPaths = directParent === '' ? ancestors : [directParent, ...ancestors];
 
   if (relevantPaths.length === 0) return; // We're at the root, no need to update
 
-  const now = Date.now();
+  const now = new Date();
 
   if (operation === 'add') {
     const dirsToInsertData = new Map<string, typeof cacheFileTable.$inferInsert>();
@@ -237,9 +238,9 @@ const updateParentFolderCache = async (
       });
 
       if (!existingEntry) {
-        const parentDir = path.dirname(dirPath);
+        const parentDir = getParentPath(dirPath);
         let context = 'collection'; // Default
-        if (parentDir !== '.') {
+        if (parentDir !== '') {
           const contextEntry = await db.query.cacheFileTable.findFirst({
             where: and(
               eq(cacheFileTable.owner, lowerOwner), eq(cacheFileTable.repo, lowerRepo), eq(cacheFileTable.branch, branch),
@@ -342,9 +343,9 @@ const updateMultipleFilesCache = async (
 
   // 2. Collect unique non-root parent paths for added/modified files
   const parentPaths = Array.from(new Set([
-    ...modifiedFiles.map(f => path.dirname(f.path)),
-    ...addedFiles.map(f => path.dirname(f.path))
-  ])).filter(p => p !== '.');
+    ...modifiedFiles.map(f => getParentPath(f.path)),
+    ...addedFiles.map(f => getParentPath(f.path))
+  ])).filter(p => p !== '');
 
   let pathContextMap = new Map<string, string>();
   if (parentPaths.length > 0) {
@@ -390,8 +391,8 @@ const updateMultipleFilesCache = async (
     if (!existingEntry) return true; // Doesn't exist in cache
 
     // Skip if cached entry is newer or same commit
-    if (existingEntry.commitTimestamp && existingEntry.commitTimestamp > commit.timestamp) return false;
-    if (existingEntry.commitTimestamp === commit.timestamp && existingEntry.commitSha === commit.sha) return false;
+    if (existingEntry.commitTimestamp && existingEntry.commitTimestamp.getTime() > commit.timestamp) return false;
+    if (existingEntry.commitTimestamp && existingEntry.commitTimestamp.getTime() === commit.timestamp && existingEntry.commitSha === commit.sha) return false;
 
     return true; // Process otherwise
   });
@@ -443,9 +444,9 @@ const updateMultipleFilesCache = async (
           continue;
         }
 
-        const parentPath = path.dirname(file.path);
-        const context = parentPath === '.' ? 'collection' : (pathContextMap.get(parentPath) || 'collection');
-        const now = Date.now();
+        const parentPath = getParentPath(file.path);
+        const context = parentPath === '' ? 'collection' : (pathContextMap.get(parentPath) || 'collection');
+        const now = new Date();
 
         const entryData = {
           context, owner: lowerOwner, repo: lowerRepo, branch,
@@ -454,7 +455,7 @@ const updateMultipleFilesCache = async (
           content: context === 'collection' ? fileData.text : null,
           sha: fileData.oid, size: fileData.byteSize, downloadUrl: null,
           lastUpdated: now,
-          commitSha: commit?.sha ?? null, commitTimestamp: commit?.timestamp ?? null
+          commitSha: commit?.sha ?? null, commitTimestamp: commit?.timestamp ? new Date(commit.timestamp) : null
         };
 
         upsertPromises.push(
@@ -486,7 +487,7 @@ const updateFileCache = async (
 ) => {
   const lowerOwner = owner.toLowerCase();
   const lowerRepo = repo.toLowerCase();
-  const parentPath = path.dirname(operation.path);
+  const parentPath = getParentPath(operation.path);
 
   switch (operation.type) {
     case 'delete':
@@ -508,7 +509,7 @@ const updateFileCache = async (
         throw new Error('Content and SHA are required for add/modify operations');
       }
 
-      const now = Date.now();
+      const now = new Date();
       const entryData = {
         context, owner: lowerOwner, repo: lowerRepo, branch,
         path: operation.path, parentPath, name: path.basename(operation.path),
@@ -516,7 +517,7 @@ const updateFileCache = async (
         content: context === 'collection' ? operation.content : null,
         sha: operation.sha, size: operation.size, downloadUrl: operation.downloadUrl,
         lastUpdated: now,
-        commitSha: operation.commit?.sha ?? null, commitTimestamp: operation.commit?.timestamp ?? null
+        commitSha: operation.commit?.sha ?? null, commitTimestamp: operation.commit?.timestamp ? new Date(operation.commit.timestamp) : null
       };
 
       // Upsert the file entry
@@ -536,8 +537,8 @@ const updateFileCache = async (
     case 'rename':
       if (!operation.newPath) throw new Error('newPath is required for rename operations');
 
-      const renameNow = Date.now();
-      const newParentPath = path.dirname(operation.newPath);
+      const renameNow = new Date();
+      const newParentPath = getParentPath(operation.newPath);
       const newName = path.basename(operation.newPath);
 
       // Update the existing entry to the new path/name
@@ -549,7 +550,7 @@ const updateFileCache = async (
           downloadUrl: null, // Reset download URL
           lastUpdated: renameNow,
           commitSha: operation.commit?.sha ?? null,
-          commitTimestamp: operation.commit?.timestamp ?? null
+          commitTimestamp: operation.commit?.timestamp ? new Date(operation.commit.timestamp) : null
         })
         .where(
           and(
@@ -635,9 +636,9 @@ const getCollectionCache = async (
   let cacheExpired = false;
   // If set to "-1", the file cache doesn't expire
   if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
-    const now = Date.now();
-    const ttl = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000; // Defaults to 7 days cache
-    cacheExpired = entries[0].lastUpdated < now - ttl;
+    const now = new Date();
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 7 days cache
+    cacheExpired = entries[0].lastUpdated.getTime() < now.getTime() - ttl;
   }
 
   
@@ -704,7 +705,7 @@ const getCollectionCache = async (
           sha: entry.type === "blob" ? entry.object.oid : null,
           size: entry.type === "blob" ? entry.object.byteSize : null,
           downloadUrl: null, // GraphQL doesn't return download URLs
-          lastUpdated: Date.now(),
+          lastUpdated: new Date(),
           // Need commit info if possible, but GraphQL tree doesn't provide it easily
           commitSha: null,
           commitTimestamp: null
@@ -779,7 +780,7 @@ const getCollectionCache = async (
               sha: nodeEntry.oid,
               size: nodeEntry.byteSize,
               downloadUrl: null,
-              lastUpdated: Date.now(),
+              lastUpdated: new Date(),
               commitSha: null,
               commitTimestamp: null
             });
@@ -824,9 +825,9 @@ const getMediaCache = async (
   let cacheExpired = false;
   // If set to "-1", the file cache doesn't expire
   if (entries.length > 0 && process.env.FILE_CACHE_TTL !== "-1") {
-    const now = Date.now();
-    const ttl = parseInt(process.env.FILE_CACHE_TTL || "10080") * 60 * 1000; // Defaults to 7 days cache
-    cacheExpired = entries[0].lastUpdated < now - ttl;
+    const now = new Date();
+    const ttl = parseInt(process.env.FILE_CACHE_TTL || "1440") * 60 * 1000; // Defaults to 7 days cache
+    cacheExpired = entries[0].lastUpdated.getTime() < now.getTime() - ttl;
   }
 
   if (entries.length === 0 || cacheExpired) {
@@ -869,7 +870,7 @@ const getMediaCache = async (
       sha: entry.sha,
       size: entry.size || null,
       downloadUrl: entry.download_url || null,
-      lastUpdated: Date.now(),
+      lastUpdated: new Date(),
       commitSha: null, // REST API doesn't provide last commit info here
       commitTimestamp: null
     }));
@@ -896,7 +897,7 @@ const checkRepoAccess = async (
   githubId: number
 ): Promise<boolean> => {
   // Check if we have a cached result
-  const now = Date.now();
+  const now = new Date();
   const ttl = parseInt(process.env.PERMISSION_CACHE_TTL || "60") * 60 * 1000;
 
   const cacheEntry = await db.query.cachePermissionTable.findFirst({
@@ -904,7 +905,7 @@ const checkRepoAccess = async (
       eq(cachePermissionTable.githubId, githubId),
       eq(cachePermissionTable.owner, owner.toLowerCase()),
       eq(cachePermissionTable.repo, repo.toLowerCase()),
-      gt(cachePermissionTable.lastUpdated, now - ttl)
+      gt(cachePermissionTable.lastUpdated, new Date(now.getTime() - ttl))
     )
   });
 
@@ -921,7 +922,7 @@ const checkRepoAccess = async (
           githubId,
           owner: owner.toLowerCase(),
           repo: repo.toLowerCase(),
-          lastUpdated: Date.now()
+          lastUpdated: new Date()
         })
         .onConflictDoUpdate({
           target: [
@@ -929,7 +930,7 @@ const checkRepoAccess = async (
             cachePermissionTable.owner,
             cachePermissionTable.repo
           ],
-          set: { lastUpdated: Date.now() }
+          set: { lastUpdated: new Date() }
         });
     }
 

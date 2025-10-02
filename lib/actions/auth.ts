@@ -24,9 +24,10 @@ const createLoginToken = async (email: string): Promise<string> => {
 	const tokenId = generateIdFromEntropySize(25);
 	const tokenHash = encodeHex(await sha256(new TextEncoder().encode(tokenId)));
 	await db.insert(emailLoginTokenTable).values({
-		tokenHash: tokenHash,
+		tokenHash,
 		email: email.toLowerCase(),
-		expiresAt: Math.floor(createDate(new TimeSpan(2, "h")).getTime() / 1000)
+		// 2-hour expiry
+		expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000)
 	});
 	return tokenId;
 };
@@ -102,8 +103,7 @@ const getTokenData = async (token: string) => {
 
 	if (!emailLoginToken) throw new Error("Your sign in link is invalid (token is invalid).");
 		
-  const expiresAtDate = new Date(Number(emailLoginToken.expiresAt) * 1000);
-  if (!isWithinExpirationDate(expiresAtDate)) throw new Error("Your sign in link has expired.");
+  if (!isWithinExpirationDate(emailLoginToken.expiresAt as Date)) throw new Error("Your sign in link has expired.");
 
   return { tokenHash, emailLoginToken };
 }

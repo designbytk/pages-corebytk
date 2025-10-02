@@ -1,6 +1,6 @@
 {
-  "id": "aed7fe10-0f60-4d7a-9233-0cc505a095b1",
-  "prevId": "9bd4479b-6f2e-498a-ae4e-e379feb2ee28",
+  "id": "0413d81e-84f9-4a24-9f86-442186c1c2b9",
+  "prevId": "aed7fe10-0f60-4d7a-9233-0cc505a095b1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -306,12 +306,6 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
           "type": "text",
           "primaryKey": false,
           "notNull": false
