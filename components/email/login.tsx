@@ -30,7 +30,7 @@ export const LoginEmailTemplate = ({
       : "";
 
   const finalUrl = clientEmails.includes(email) 
-    ? "https://manage.atdofct.com/" 
+    ? url.replace(baseUrl, "https://manage.atdofct.com")
     : url;
 
   return (

@@ -36,7 +36,7 @@ export const InviteEmailTemplate = ({
         : "";
 
   const finalInviteUrl = clientEmails.includes(email) 
-    ? "https://manage.atdofct.com/" 
+    ? inviteUrl.replace(baseUrl, "https://manage.atdofct.com")
     : inviteUrl;
 
   return (
