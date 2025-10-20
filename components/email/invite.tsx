@@ -27,11 +27,15 @@ export const InviteEmailTemplate = ({
   invitedByName: string,
   invitedByUrl: string,
 }) => {
-  const baseUrl = process.env.BASE_URL
-    ? process.env.BASE_URL
-    : process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "";
+  const specialEmails = ["jared@atdofct.com", "casey@atdofct.com"];
+  
+  const baseUrl = specialEmails.includes(email)
+    ? "https://manage.atdofct.com"
+    : process.env.BASE_URL
+      ? process.env.BASE_URL
+      : process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "";
 
   return (
     <Html>
