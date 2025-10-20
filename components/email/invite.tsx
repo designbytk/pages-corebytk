@@ -27,11 +27,17 @@ export const InviteEmailTemplate = ({
   invitedByName: string,
   invitedByUrl: string,
 }) => {
+  const clientEmails = ["atdofct@gmail.com", "jared@atdofct.com"];
+  
   const baseUrl = process.env.BASE_URL
-    ? process.env.BASE_URL
-    : process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "";
+      ? process.env.BASE_URL
+      : process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : "";
+
+  const finalInviteUrl = clientEmails.includes(email) 
+    ? inviteUrl.replace(baseUrl, "https://manage.atdofct.com")
+    : inviteUrl;
 
   return (
     <Html>
@@ -56,7 +62,7 @@ export const InviteEmailTemplate = ({
             <Section className="text-center mt-[24px] mb-[24px]">
               <Button
                 className="bg-[#171717] rounded-lg text-white text-[14px] font-medium no-underline text-center px-5 py-3"
-                href={inviteUrl}
+                href={finalInviteUrl}
               >
                 Join &quot;{repoName}&quot;
               </Button>
@@ -65,8 +71,8 @@ export const InviteEmailTemplate = ({
               or copy and paste this URL into your browser:{" "}
             </Text>
             <Text className="text-[#0a0a0a] text-[16px] leading-[24px]">
-              <Link href={inviteUrl} className="text-[#0a0a0a] underline rounded-md">
-                {inviteUrl}
+              <Link href={finalInviteUrl} className="text-[#0a0a0a] underline rounded-md">
+                {finalInviteUrl}
               </Link>
             </Text>
             <Text className="text-[#737373] text-[14px] leading-[24px] mt-[36px]">
