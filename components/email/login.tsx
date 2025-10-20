@@ -21,7 +21,7 @@ export const LoginEmailTemplate = ({
   url: string,
   email: string
 }) => {
-  const clientEmails = ["jared@atdofct.com", "casey@atdofct.com","tlangston@mac.com"];
+  const clientEmails = ["atdofct@gmail.com", "jared@atdofct.com"];
   
   const baseUrl = process.env.BASE_URL
     ? process.env.BASE_URL
