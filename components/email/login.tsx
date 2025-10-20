@@ -21,15 +21,17 @@ export const LoginEmailTemplate = ({
   url: string,
   email: string
 }) => {
-  const specialEmails = ["jared@atdofct.com", "casey@atdofct.com","tlangston@mac.com"];
+  const clientEmails = ["jared@atdofct.com", "casey@atdofct.com","tlangston@mac.com"];
   
-  const baseUrl = specialEmails.includes(email)
-    ? "https://manage.atdofct.com"
-    : process.env.BASE_URL
-      ? process.env.BASE_URL
-      : process.env.VERCEL_PROJECT_PRODUCTION_URL
-        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-        : "";
+  const baseUrl = process.env.BASE_URL
+    ? process.env.BASE_URL
+    : process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "";
+
+  const finalUrl = clientEmails.includes(email) 
+    ? "https://manage.atdofct.com/" 
+    : url;
 
   return (
     <Html>
@@ -54,7 +56,7 @@ export const LoginEmailTemplate = ({
             <Section className="text-center mt-[24px] mb-[24px]">
               <Button
                 className="bg-[#171717] rounded-lg text-white text-[14px] font-medium no-underline text-center px-5 py-3"
-                href={url}
+                href={finalUrl}
               >
                 Sign in
               </Button>
@@ -63,8 +65,8 @@ export const LoginEmailTemplate = ({
               or copy and paste this URL into your browser:{" "}
             </Text>
             <Text className="text-[#0a0a0a] text-[16px] leading-[24px]">
-              <Link href={url} className="text-[#0a0a0a] underline rounded-md">
-                {url}
+              <Link href={finalUrl} className="text-[#0a0a0a] underline rounded-md">
+                {finalUrl}
               </Link>
             </Text>
             <Text className="text-[#737373] text-[14px] leading-[24px] mt-[36px]">
