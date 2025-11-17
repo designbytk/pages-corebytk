@@ -27,7 +27,7 @@ export const InviteEmailTemplate = ({
   invitedByName: string,
   invitedByUrl: string,
 }) => {
-  const clientEmails = ["atdofct@gmail.com", "jared@atdofct.com"];
+  const clientEmails = ["atdofct@gmail.com", "jared@atdofct.com","tlangston@mac.com"];
   
   const baseUrl = process.env.BASE_URL
       ? process.env.BASE_URL
